@@ -1,7 +1,7 @@
 use LWP::UserAgent;
 
-# API Endpoint
-my $endpoint = 'http://127.0.0.1/api'; # Replace with real endpoint
+# iCLiKVAL API Endpoint
+my $endpoint = 'http://iclikval.riken.jp/api'; # Replace with real endpoint
 # API Access Token
 my $token = 'xxxxxxxxxxxxxxxxxxxxxxxxx'; # Replace with real access token
 
