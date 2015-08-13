@@ -1,6 +1,6 @@
 # Using curl
 <code>
-  curl -v -H 'Accept: application/json' -H 'Authorization: Bearer your_access_token_here' \ `http://iclikval.riken.jp/api/annotation` 
+  curl  -H 'Accept: application/json' -H 'Authorization: Bearer your_access_token_here'  `http://iclikval.riken.jp/api/annotation` 
 </code>
 
 # Using httpie
