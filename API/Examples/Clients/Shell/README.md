@@ -5,5 +5,5 @@
 
 # Using httpie
 <code>
-  http GET <span></span>http://iclikval.riken.jp/api/annotation 'Authorization: Bearer your_access_token_here'
+  http GET `http://iclikval.riken.jp/api/annotation` 'Authorization: Bearer your_access_token_here'
 </code>
