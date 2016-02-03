@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class ClientExample {
     public static void main(String[] args) throws Exception {
-        String endpoint = "http://iclikval.riken.jp/api/annotation";
+        String endpoint = "http://api.iclikval.riken.jp/annotation";
         URL url         = new URL(endpoint);
 
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
