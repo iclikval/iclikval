@@ -1,7 +1,7 @@
 import requests, json
 
 # iCLiKVAL API endpoint 
-endpoint = "http://iclikval.riken.jp/api"
+endpoint = "http://api.iclikval.riken.jp"
 resource = "annotation"
 uri      = endpoint + "/" + resource
 
