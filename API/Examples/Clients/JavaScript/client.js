@@ -1,6 +1,6 @@
 // This example is based on jQuery $ajax method.
 $(document).ready(function() {
-    var url   = "http://iclikval.riken.jp/api/annotation";
+    var url   = "http://api.iclikval.riken.jp/annotation";
     var token = "xxxxxxxxxxxxxxxxxxxxxxx"; // Replace with your access token
 
     $.ajax(url, {
