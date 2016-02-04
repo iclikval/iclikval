@@ -5,7 +5,7 @@ int main(void)
 {
   CURL *curl;
   CURLcode response;
-  char *url = "http://iclikval.riken.jp/api/annotation";
+  char *url = "http://api.iclikval.riken.jp/annotation";
   struct curl_slist *headers = NULL;
 
   headers = curl_slist_append(headers,"Accept: application/json");
