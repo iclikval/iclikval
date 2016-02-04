@@ -2,7 +2,7 @@
 
 library(httr)
 
-url <- "http://iclikval.riken.jp/api/annotation"
+url <- "http://api.iclikval.riken.jp/annotation"
 
 headers <- add_headers(
   "Accept"        = "application/json",
