@@ -1,7 +1,7 @@
 require 'net/http'
 
 # iCLiKVAL API endpoint
-endpoint = 'http://10.64.206.171/api'
+endpoint = 'http://api.iclikval.riken.jp'
 resource = 'annotation'
 uri      = endpoint + '/' + resource
 url      = URI.parse(uri)
