@@ -12,7 +12,7 @@
 	var annots=[];//annotations by users object
 	var paths=[]; //key,value of selected node
 	var sorted=[]; //sorted list of leaves for search
-	var root={"name":"All","cat":"Annotations","index":[],"children":[]};
+	var root={"name":"All","category":"Annotations","index":[],"children":[]};
 	var node=root; //current node
 	var color = d3.scale.ordinal().range(["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]);
 	var param={};
@@ -145,37 +145,56 @@ console.timeEnd("action-annot");
 	}
 	
 	function reduce(node,mode) {
+		//init
 		node.children=[];
 		leaves=[];
-		if(mode=="type") {
-			node.children=node.index.reduce(function(res,idx){
-				if(annots[idx].reviewer.username=="iclikval") {
-					res[0].index.push(idx);
-					return res;
-				}
-				else {
-					res[1].index.push(idx);
-					return res;
-				}
-			},[{"name":"Automatic","category":mode,"index":[],"children":[]},{"name":"Human","category":mode,"index":[],"children":[]}]);
+		//local var
+		if(!mode) {console.log("NO MODE"); mode="annot. type";}
+		var cats=[]; //list of categories
+		var cat=""; //current category
+	//	var res=[]; //node.children
+		var i=0; //index of children
+		
+		//category accessor
+		function getCat(idx) {
+			if(mode=="annot. type" || mode=="user") {return annots[idx].reviewer.username;}
+			else if(mode=="media type") {return annots[idx].media.type;}
+			else if(mode=="media") {return annots[idx].media.title;}
+			else if(mode=="language") {return annots[idx].language;}
+			else if(mode=="key") {return annots[idx].key;}
+			else if(mode=="relationship") {return annots[idx].relationship;}
+			else if(mode=="value") {return annots[idx].value;}
 		}
-		if(mode=="user") {
-			var cat=[];
+		
+		//children computation
+		if(mode=="annot. type") {
 			node.children=node.index.reduce(function(res,idx){
-				var i=cat.indexOf(annots[idx].reviewer.username);
+				if(getCat(idx)=="iclikval") { i=0; }
+				else { i=1; }
+				res[i].index.push(idx);
+				return res;
+			},[{"name":"Automatic","category":mode,"index":[],"children":[]},
+				{"name":"Human","category":mode,"index":[],"children":[]}]
+			);
+		}
+		else {
+			node.children=node.index.reduce(function(res,idx){
+				cat=getCat(idx);
+				i=cats.indexOf(cat);
 				if(i<0){
-					i=cat.length;
-					cat.push(annots[idx].reviewer.username);
-					res.push({"name":cat[i],"categoty":mode,"index":[],"children":[]});
+					i=cats.length;
+					cats.push(cat);
+					res.push({"name":cats[i],"category":mode,"index":[],"children":[]});
 				}
 				res[i].index.push(idx);
 				return res;
 			},[]);
 		}
+		
+		//sort children for search
 		var search=node.children.slice(0);
 		search.push(node);
 		sorted=search.sort(function(a,b) { return a.name.length<b.name.length ? -1 : a.name.length>b.name.length ? 1 : a.name<b.name ? -1 : a.name>b.name ? 1 : 0  ; });
-		console.log(mode,node);
 	}
 	
 	//VIEWS//
@@ -196,20 +215,22 @@ console.timeEnd("action-annot");
 			.attr("width", 30)
 			.attr("height", 30)
 		//mode
-		div.append("span").text(" Split by: ")
+		div.append("span").html("&nbspSplit by:&nbsp")
 		var s=div.append("select").attr("id","ick_mode")
-			//options//
-			s.append("option").attr("value","type").text("type").property("selected",true);
+/*			//options//
+			var opts=["annot. type","user","media type","media","language","key","relationship","value"];
+			console.log("optmanag:",paths);
+*/			
+/*			s.append("option").attr("value","annot. type").text("annotation type").property("selected",true);
 			s.append("option").attr("value","user").text("user")
-			s.append("option").attr("value","item").text("item")
+			s.append("option").attr("value","media type").text("media type")
+			s.append("option").attr("value","media").text("media")
 			s.append("option").attr("value","language").text("language")
 			s.append("option").attr("value","key").text("key")
-			s.append("option").attr("value","relationship").text("user")
+			s.append("option").attr("value","relationship").text("relationship")
 			s.append("option").attr("value","value").text("value")
-			s.on("change",function() { 
-				console.log("mode",this.value);
-				updateView();
-			});
+*/
+			s.on("change",function() {updateView();});
 			
 		p.update= function(list) {
 			//update list of options
@@ -226,10 +247,8 @@ console.timeEnd("action-annot");
 						.style("display","none")
 						.select('ul').selectAll("li").remove()
 					tip("hide",d);
-					//getTree(d);
-					//updateView();
-					//updateColor();
-					//updateLabel();
+					if(d!=node) {updatePath(d);}
+					updateView();
 				})
 				.on('mouseover', function(d){ tip("show",d); })
 				.on('mouseout', function(d){ tip("hide",d); })
@@ -238,7 +257,7 @@ console.timeEnd("action-annot");
 		}
 			
 		//Search bar//
-		div.append("span").text(" Zoom on: ")
+		div.append("span").html("&nbspZoom on:&nbsp")
 		var s=div.append("input").attr("type","text")
 			.attr("class","ick-search")
 			.attr("size","7")
@@ -246,9 +265,6 @@ console.timeEnd("action-annot");
 				d3.select(".ick-searchbox").style("display","inline-block");
 				p.update(sorted.slice(0,10));
 			})
-			//.on("blur",function() {
-			//	console.log("blur");
-			//	d3.select(".ick-searchbox").style("display","none");})
 			.on("keyup",function() {
 				var word = this.value;
 				var matches=[];
@@ -282,13 +298,28 @@ console.timeEnd("action-annot");
 			g.append("polygon")
 			.attr("points", tail)
 			.style("fill", function(d) { return color(d.name); })
+			.style("cursor","pointer")
+			.on("click", function(d,i) {
+//console.log(i,d);
+//console.log("before",paths);
+				paths=paths.slice(0,i+1);
+				node=d;
+//console.log("after",paths);
+//				tip("hide",d);
+//				updatePath(d);
+				updateView();
+			})
+//			.on('mouseover', function(d){ tip("show",d); })
+//			.on("mousemove", function(d) { tip("move"); })
+//			.on("mouseout", function(d){ tip("hide",d); })	
 			//text
 			g.append("text")
+			.style("pointer-events","none")
 			.attr("x",tag.w/2) //(tag.w) / 2)
 			.attr("y", tag.h/2)
 			.attr("dy", "0.25em")
 			.attr("text-anchor", "middle")
-			.text(function(d) { return d.cat+" = "+d.name; });
+			.text(function(d) { return d.category+" = "+d.name; });
 			// Remove exiting nodes.
 			sel.exit().remove();
 			//adapt container length
@@ -307,6 +338,16 @@ console.timeEnd("action-annot");
 				
 				return res.join(" ");
 			}
+			
+			//options//
+			var opts=["annot. type","user","media type","media","language","key","relationship","value"];
+			var used=paths.map(function(p) {return p.category;})
+			//console.log("optmanag:",opts.filter(function(o) {return used.indexOf(o)<0;}));
+			//"value"
+			var sel = d3.select("#ick_mode").selectAll("option")
+			.data(opts.filter(function(o) {return used.indexOf(o)<0;}),function(d){return d;})
+			sel.enter().append("option").attr("value",function(d){return d;}).text(function(d){return d;})
+			sel.exit().remove();
 		}
 	}
 
@@ -360,8 +401,7 @@ console.timeEnd("action-annot");
 				.sticky(true) //keep child position when transform
 				.value(function(d){return d.index.length;});
 			p.layout.nodes(node);
-			saveCoords(node,"treemap");	
-console.log("layout",p.layout.nodes());	
+			saveCoords(node,"treemap");
 		
 			//d3.scales
 			p.x = d3.scale.linear().range([0, w]).domain([node.x, node.x + node.dx]);
@@ -379,8 +419,8 @@ console.log("layout",p.layout.nodes());
 			.style("fill",function(d){return color(d.name);})
 			.on("click", function(d) {
 				tip("hide",d);
-//				getTree(d);
-//				updateView();
+				updatePath(d);
+				updateView();
 			})
 			.on('mouseover', function(d){ tip("show",d); })
 			.on("mousemove", function(d) { tip("move"); })
@@ -595,16 +635,23 @@ console.log("layout",p.layout.nodes());
 			}
 		}
 	}
-	
-	
+		
 	function updateView(){
 		var mode=d3.select("#ick_mode").node().value;
-		console.log(mode);
 		reduce(node,mode);
 		for(var l in param) { //foreach layout	
 			param[l].setView();
 		}
-		
+console.log("struct:",root);
+	}
+	
+	function updatePath(n) {
+		paths.push(n);
+		node=n;
+		var mode = d3.select("#ick_mode").node().value;
+		var opt=d3.select("#ick_mode").select("option[value='"+mode+"']")
+		opt.remove();
+	}
 /*		//Multi bar chart
 		//compute data for barchart
 		var bars = d3.keys(annots["iclikval"].length)//.filter(function(key) { return key !== "annot"; });
@@ -664,7 +711,6 @@ console.log("layout",p.layout.nodes());
 			  .style("text-anchor", "end")
 			  .text(function(d) { return d; });	
 */
-	}
 
 	function tip(state,d) {
 		if(state=="show") {
@@ -673,7 +719,7 @@ console.log("layout",p.layout.nodes());
 				.style("opacity",1)
 				.html("name: "+d.name+"<br/>value: "+d.index.length)
 			//HL
-			d3.select("#"+d.name)
+			d3.select("#'"+d.name+"'")
 			.style("fill",d3.rgb(color(d.name)).darker());
 			
 		}
@@ -688,80 +734,6 @@ console.log("layout",p.layout.nodes());
             .style("left", (d3.event.pageX+10)+"px");
 		}
 	}
-	
-	
-	
-/*	function initializeBreadcrumbTrail() {
-  // Add the svg area.
-  var trail = d3.select("#sequence").append("svg:svg")
-      .attr("width", width)
-      .attr("height", 50)
-      .attr("id", "trail");
-  // Add the label at the end, for the percentage.
-  trail.append("svg:text")
-    .attr("id", "endlabel")
-    .style("fill", "#000");
-}
-*/
-// Generate a string that describes the points of a breadcrumb polygon.
-function breadcrumbPoints(d, i) {
-  var points = [];
-  points.push("0,0");
-  points.push(b.w + ",0");
-  points.push(b.w + b.t + "," + (b.h / 2));
-  points.push(b.w + "," + b.h);
-  points.push("0," + b.h);
-  if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
-    points.push(b.t + "," + (b.h / 2));
-  }
-  return points.join(" ");
-}
-
-// Update the breadcrumb trail to show the current sequence and percentage.
-function updateBreadcrumbs(nodeArray, percentageString) {
-
-  // Data join; key function combines name and depth (= position in sequence).
-  var g = d3.select("#trail")
-      .selectAll("g")
-      .data(nodeArray, function(d) { return d.name + d.depth; });
-
-  // Add breadcrumb and label for entering nodes.
-  var entering = g.enter().append("svg:g");
-
-  entering.append("svg:polygon")
-      .attr("points", breadcrumbPoints)
-      .style("fill", function(d) { return colors[d.name]; });
-
-  entering.append("svg:text")
-      .attr("x", (b.w + b.t) / 2)
-      .attr("y", b.h / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "middle")
-      .text(function(d) { return d.name; });
-
-  // Set position for entering and updating nodes.
-  g.attr("transform", function(d, i) {
-    return "translate(" + i * (b.w + b.s) + ", 0)";
-  });
-
-  // Remove exiting nodes.
-  g.exit().remove();
-
-  // Now move and update the percentage at the end.
-  d3.select("#trail").select("#endlabel")
-      .attr("x", (nodeArray.length + 0.5) * (b.w + b.s))
-      .attr("y", b.h / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "middle")
-      .text(percentageString);
-
-  // Make the breadcrumb trail visible, if it's hidden.
-  d3.select("#trail")
-      .style("visibility", "");
-
-}
-	
-	
 	
 	//DEFINE OR EXPORTS//
 	if (typeof define === "function" && define.amd) define(ick); else if (typeof module === "object" && module.exports) module.exports = ick;
