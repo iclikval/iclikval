@@ -6,16 +6,17 @@
 	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6ImVmNjU5OWFmNTIwNjJlMzcyZjA3ZmM3NzAyNDFjMjE2NzhiYzc2YmMiLCJqdGkiOiJlZjY1OTlhZjUyMDYyZTM3MmYwN2ZjNzcwMjQxYzIxNjc4YmM3NmJjIiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTU2NzU4NDgsImlhdCI6MTQ1NDQ2NjI0OCwidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.JFhOq-OJLCeCK7Brm7W1A_GWl2zqIwHWh-i3eiOXDZjkH4c5ODvJgWV9LzOD6VFnBhKcOXJ5upBtruZPYcNwIlp-JQAYXRvo4bc1yEksnFKOVESs4NrTGV7JUHsyZu1KHyVdRCCYJnxtbwaKHRAkfMG50u7DI8PRyo78uB9T17ZL9wupU4JsorWfaU0-oynIkW9XdsSWwyg2hq2X-kJOk-IekWxAFounYl9HZl7KMJMQMLWTg5OxGrL6MlsrUuciwx_C5L4JQhuuvi_53CRuKO1K18AUCAbYNY-sz_UTN368l0kcRq5FrUOwYe17bu-DUeHEHWfWE-U2RiwJ_fP6DA";
 	//Query Params//
 	var firstPage=1;
-	var lastPage=1; // "" to the end
-	var pageSize=500;
+	var lastPage=""; // "" to the end
+	var pageSize=2000;
 	////////////////
 	var annots=[];//annotations by users object
-	var paths=[]; //key,value of selected node
+	var root={"name":"All","id":0,"category":"Annotations","index":[],"children":[]};
+	var paths=[root]; //key,value of selected node
 	var sorted=[]; //sorted list of leaves for search
-	var root={"name":"All","category":"Annotations","index":[],"children":[]};
 	var node=root; //current node
 	var color = d3.scale.ordinal().range(["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]);
 	var param={};
+	
 
 	//METHODS//
 	ick.load = function(bar,loc) {
@@ -131,7 +132,6 @@ console.log("page",page,"read");
 console.log("data",data);
 console.log("annots",annots);
 					root.index=d3.range(annots.length);
-					paths.push(root);
 					updateView();
 //console.timeEnd("all");
 				}
@@ -173,9 +173,10 @@ console.timeEnd("action-annot");
 				else { i=1; }
 				res[i].index.push(idx);
 				return res;
-			},[{"name":"Automatic","category":mode,"index":[],"children":[]},
-				{"name":"Human","category":mode,"index":[],"children":[]}]
+			},[{"name":"Automatic","id":"Automatic","category":mode,"index":[],"children":[]},
+				{"name":"Human","id":"Human","category":mode,"index":[],"children":[]}]
 			);
+			gid=3;
 		}
 		else {
 			node.children=node.index.reduce(function(res,idx){
@@ -184,7 +185,8 @@ console.timeEnd("action-annot");
 				if(i<0){
 					i=cats.length;
 					cats.push(cat);
-					res.push({"name":cats[i],"category":mode,"index":[],"children":[]});
+					res.push({"name":cats[i],"id":cats[i].replace(/\W/g,""),"category":mode,"index":[],"children":[]});
+					gid++;
 				}
 				res[i].index.push(idx);
 				return res;
@@ -217,19 +219,6 @@ console.timeEnd("action-annot");
 		//mode
 		div.append("span").html("&nbspSplit by:&nbsp")
 		var s=div.append("select").attr("id","ick_mode")
-/*			//options//
-			var opts=["annot. type","user","media type","media","language","key","relationship","value"];
-			console.log("optmanag:",paths);
-*/			
-/*			s.append("option").attr("value","annot. type").text("annotation type").property("selected",true);
-			s.append("option").attr("value","user").text("user")
-			s.append("option").attr("value","media type").text("media type")
-			s.append("option").attr("value","media").text("media")
-			s.append("option").attr("value","language").text("language")
-			s.append("option").attr("value","key").text("key")
-			s.append("option").attr("value","relationship").text("relationship")
-			s.append("option").attr("value","value").text("value")
-*/
 			s.on("change",function() {updateView();});
 			
 		p.update= function(list) {
@@ -297,21 +286,13 @@ console.timeEnd("action-annot");
 			//shape
 			g.append("polygon")
 			.attr("points", tail)
-			.style("fill", function(d) { return color(d.name); })
+			.style("fill", function(d) { return color(d.id); })
 			.style("cursor","pointer")
 			.on("click", function(d,i) {
-//console.log(i,d);
-//console.log("before",paths);
 				paths=paths.slice(0,i+1);
 				node=d;
-//console.log("after",paths);
-//				tip("hide",d);
-//				updatePath(d);
 				updateView();
 			})
-//			.on('mouseover', function(d){ tip("show",d); })
-//			.on("mousemove", function(d) { tip("move"); })
-//			.on("mouseout", function(d){ tip("hide",d); })	
 			//text
 			g.append("text")
 			.style("pointer-events","none")
@@ -349,6 +330,9 @@ console.timeEnd("action-annot");
 			sel.enter().append("option").attr("value",function(d){return d;}).text(function(d){return d;})
 			sel.exit().remove();
 		}
+		
+		//first init
+		p.setView();
 	}
 
 	function treemap(p){
@@ -411,12 +395,12 @@ console.timeEnd("action-annot");
 			var sel = d3.select("#ick-treemap").select(".ick-visual").datum(node)
 			.selectAll("rect").data(p.layout.nodes()
 				.filter(function(d){return !d.children;}),
-				function(d){return d.name;}
+				function(d){return d.id;}
 			);
 			//create new
 			sel.enter().append("rect")
-			.attr("class",function(d){return "v"+d.name;})
-			.style("fill",function(d){return color(d.name);})
+			.attr("class",function(d){return "v"+d.id;})
+			.style("fill",function(d){return color(d.id);})
 			.on("click", function(d) {
 				tip("hide",d);
 				updatePath(d);
@@ -451,11 +435,11 @@ console.timeEnd("action-annot");
 			var sel = d3.select("#ick-treemap").select(".ick-labels").datum(node)
 			.selectAll("path").data(p.layout.nodes()
 				.filter(function(d){return !d.children;}),
-				function(d){return d.name;}
+				function(d){return d.id;}
 			);
 			//create path
 			sel.enter().append("path")
-				.attr("id",function(d){return "map"+d.name;})
+				.attr("id",function(d){return "map"+d.id;})
 				.attr("d",function(d) {return "M0,0L0,0"; })
 				.style("opacity",0)
 				.style("pointer-events","none")
@@ -469,16 +453,16 @@ console.timeEnd("action-annot");
 			var sel = d3.select("#ick-treemap").select(".ick-labels").datum(node)
 			.selectAll("text").data(p.layout.nodes()
 				.filter(function(d){return !d.children;})
-				,function(d){return d.name;}
+				,function(d){return d.id;}
 			);
 			//create text
 			sel.enter().append("text")
-				.attr("class",function(d){return "t"+d.name;})
+				.attr("class",function(d){return "t"+d.id;})
 				.attr("text-anchor", "left")
 				.attr("dy","0.5ex")
 				.style("pointer-events","none")
 				.append("textPath")
-				.attr("xlink:href",function(d){return "#map"+d.name;})
+				.attr("xlink:href",function(d){return "#map"+d.id;})
 				.text(function(d){ return d.name; })
 			//delete
 			sel.exit().remove();
@@ -719,15 +703,15 @@ console.log("struct:",root);
 				.style("opacity",1)
 				.html("name: "+d.name+"<br/>value: "+d.index.length)
 			//HL
-			d3.select("#'"+d.name+"'")
-			.style("fill",d3.rgb(color(d.name)).darker());
+			d3.select(".v"+d.id)
+			.style("fill",d3.rgb(color(d.id)).darker());
 			
 		}
 		else if(state=="hide") {
 			d3.select("#tip").style("opacity",0);
 			//HL
-			d3.select("#"+d.name)
-			.style("fill",color(d.name));
+			d3.select(".v"+d.id)
+			.style("fill",color(d.id));
 		}
 		else { // move
 			d3.select("#tip").style("top", (d3.event.pageY-10)+"px")
