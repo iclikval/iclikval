@@ -3,12 +3,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 	<title></title>
-	<link href="./edge.css" media="screen" rel="stylesheet" type="text/css">
+	<link href='http://fonts.googleapis.com/css?family=Source+Code+Pro:600' rel='stylesheet' type='text/css'>
 	</head>
   <body>
 	<h1>Annotations</h1>
 	
-	<div id="head"></div>
+	<div id="path"></div>
+	<div id="load"></div>
 	<div id="view"></div>
 	
 	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
@@ -19,7 +20,21 @@
 console.log("d3",d3.version);
 console.log("iclikval",ick.version);
 
-	ick.load("head","view");
+	var config={
+		"path":{
+			"location":"path"
+		},
+		"progress":{
+			"location":"load",
+			"width":800
+		},
+		"treemap":{
+			"location":"view",
+			"width":800,
+			"height":600
+		}
+	}
+	ick.load(config);
 	</script>
   </body>
 </html>

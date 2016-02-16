@@ -5,37 +5,35 @@
 	var url="http://api.iclikval.riken.jp/annotation";
 	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6ImVmNjU5OWFmNTIwNjJlMzcyZjA3ZmM3NzAyNDFjMjE2NzhiYzc2YmMiLCJqdGkiOiJlZjY1OTlhZjUyMDYyZTM3MmYwN2ZjNzcwMjQxYzIxNjc4YmM3NmJjIiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTU2NzU4NDgsImlhdCI6MTQ1NDQ2NjI0OCwidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.JFhOq-OJLCeCK7Brm7W1A_GWl2zqIwHWh-i3eiOXDZjkH4c5ODvJgWV9LzOD6VFnBhKcOXJ5upBtruZPYcNwIlp-JQAYXRvo4bc1yEksnFKOVESs4NrTGV7JUHsyZu1KHyVdRCCYJnxtbwaKHRAkfMG50u7DI8PRyo78uB9T17ZL9wupU4JsorWfaU0-oynIkW9XdsSWwyg2hq2X-kJOk-IekWxAFounYl9HZl7KMJMQMLWTg5OxGrL6MlsrUuciwx_C5L4JQhuuvi_53CRuKO1K18AUCAbYNY-sz_UTN368l0kcRq5FrUOwYe17bu-DUeHEHWfWE-U2RiwJ_fP6DA";
 	//Query Params//
-	var firstPage=1;
+	var currentPage=1;
 	var lastPage=""; // "" to the end
 	var pageSize=2000;
 	////////////////
-	var annots=[];//annotations by users object
-	var root={"name":"All","id":0,"category":"Annotations","index":[],"children":[]};
-	var paths=[root]; //key,value of selected node
-	var sorted=[]; //sorted list of leaves for search
+	var config={};//config from index.html
+	var param={};//param from ick.js
+	var annots=[];//list of annotations object
+	var total={"name":"Total","id":0,"category":"Total","index":{"length":0},"children":[]};
+	var root={"name":"All","id":1,"category":"Annotations","index":[],"children":[]};
 	var node=root; //current node
+	var paths=[[root,"annot. type"]]; //list of filters [node,split mode]
+	var sorted=[]; //sorted list of leaves for search
 	var color = d3.scale.ordinal().range(["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]);
-	var param={};
-	
 
 	//METHODS//
-	ick.load = function(bar,loc) {
+	ick.load = function(c) {
 //console.time("all");
-		
-		initView(bar,loc);
-		
+		config=c;
+		initView();	
 //console.time("getAnnot");
-		getAnnotations(firstPage);
-		
-
+		getAnnotations();
 	}
 	
-	function initView(bar,loc) {
+	function initView() {
 		
 		//style
-		d3.select("head").selectAll("#css").data(["style"])
-		.enter().append("style").attr("id","css").text(
-		".hide{position:absolute;z-index:10;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;pointer-events:none;opacity:0}\n"
+		d3.select("head").selectAll("#ick-css").data(["style"])
+		.enter().append("style").attr("id","ick-css").text(
+		".ick-hide{position:absolute;z-index:10;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;pointer-events:none;opacity:0}\n"
 		+".ick-box{position:absolute;z-index:3;display:inline-block;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;min-height:14px;}\n"
 		+".ick-box ul{margin:0px;padding:0px 5px;}\n"
 		+".ick-box ul li {list-style-type:none;list-style-position:outside;}\n"
@@ -43,19 +41,18 @@
 		);
 		
 		//hidden div
-		d3.select("body").selectAll(".hide").data(["tip","info"])
-		.enter().append("div").attr("id",function(d){return "ick-"+d;}).attr("class", "hide");
+		d3.select("body").selectAll(".ick-hide").data(["tip","info"])
+		.enter().append("div").attr("id",function(d){return "ick-"+d;}).attr("class", "ick-hide");
 		
 		//build views
-		param.path={};
-		param.path.location=bar;
-		path(param.path);
+		param.path={"height":30};
+		path(config.path,param.path);
+		
+		param.progress={"height":20};
+		progress(config.progress,param.progress);
 			
 		param.treemap={};
-		param.treemap.location=loc;
-		param.treemap.width=800;
-		param.treemap.height=600;
-		treemap(param.treemap);
+		treemap(config.treemap,param.treemap);
 
 		
 /*		//Multi bar chart
@@ -111,48 +108,49 @@
 */
 	}
 	
-	function getAnnotations(page) {
-		d3.json(url+"?page="+page+"&page_size="+pageSize)
+	function getAnnotations() {
+		d3.json(url+"?page="+currentPage+"&page_size="+pageSize)
 			.header("Authorization","Bearer "+token)
 			.get(function(err,data) {
 //console.timeEnd("getAnnot");
-console.log("page",page,"read");
+console.log("page",currentPage,"read");
 
 				action(data);
+				total.index.length=data.total_items;
+				root.index=d3.range(annots.length);
 				//recursive call
-				if(data.page<data.page_count && (lastPage>0 ? page<lastPage : true) ) { //if lastPage="", read all
-					page++;
-					root.index=d3.range(annots.length);
-					//paths.push(root);
-					updateView();
+				if(data.page<data.page_count && (lastPage>0 ? currentPage<lastPage : true) ) { //if lastPage="", read all
+					currentPage++;
+					updateView("load");
 //console.time("getAnnot");
-					getAnnotations(page);
+					getAnnotations(currentPage);
 				}
 				else {
+					updateView("load");
 console.log("data",data);
-console.log("annots",annots);
-					root.index=d3.range(annots.length);
-					updateView();
+console.log("annots",annots);					
 //console.timeEnd("all");
 				}
 			})
 	}
 	
 	function action(data) {
-console.time("action-annot");
+//console.time("action-annot");
 		annots=annots.concat(data._embedded.annotation)
-console.timeEnd("action-annot");
+//console.timeEnd("action-annot");
 	}
 	
 	function reduce(node,mode) {
 		//init
-		node.children=[];
-		leaves=[];
-		//local var
-		if(!mode) {console.log("NO MODE"); mode="annot. type";}
-		var cats=[]; //list of categories
+		if(!mode) {mode=d3.select("#ick_mode").node().value;}
+		var cats=[];
+		var children=[];
+		if(node.children){
+			cats=node.children.map(function(c){ c.index=[]; return c.id;}); //list of categories (delete index)
+			children=node.children;
+		}
 		var cat=""; //current category
-	//	var res=[]; //node.children
+		var id=""; //current id (cat replace)
 		var i=0; //index of children
 		
 		//category accessor
@@ -166,60 +164,63 @@ console.timeEnd("action-annot");
 			else if(mode=="value") {return annots[idx].value;}
 		}
 		
-		//children computation
 		if(mode=="annot. type") {
-			node.children=node.index.reduce(function(res,idx){
+			if(cats.indexOf("Automatic")<0) {
+				children.push({"name":"Automatic","id":"Automatic","category":mode,"index":[],"children":[]});
+				cats.push("Automatic");
+			}
+			if(cats.indexOf("Human")<0) {
+				children.push({"name":"Human","id":"Human","category":mode,"index":[],"children":[]});
+				cats.push("Human");
+			}
+			//short loop
+			node.index.forEach(function(idx) {
 				if(getCat(idx)=="iclikval") { i=0; }
 				else { i=1; }
-				res[i].index.push(idx);
-				return res;
-			},[{"name":"Automatic","id":"Automatic","category":mode,"index":[],"children":[]},
-				{"name":"Human","id":"Human","category":mode,"index":[],"children":[]}]
-			);
-			gid=3;
+				children[i].index.push(idx);
+			});
 		}
 		else {
-			node.children=node.index.reduce(function(res,idx){
+			node.index.forEach(function(idx) {
 				cat=getCat(idx);
-				i=cats.indexOf(cat);
+				id=cat.replace(/\W/g,"");
+				i=cats.indexOf(id);
 				if(i<0){
 					i=cats.length;
-					cats.push(cat);
-					res.push({"name":cats[i],"id":cats[i].replace(/\W/g,""),"category":mode,"index":[],"children":[]});
-					gid++;
+					cats.push(id);
+					children.push({"name":cat,"id":id,"category":mode,"index":[],"children":[]});
 				}
-				res[i].index.push(idx);
-				return res;
-			},[]);
+				children[i].index.push(idx);
+			});
 		}
+		
+		node.children=children.filter(function(c){return c.index.length>0;});
 		
 		//sort children for search
 		var search=node.children.slice(0);
 		search.push(node);
-		sorted=search.sort(function(a,b) { return a.name.length<b.name.length ? -1 : a.name.length>b.name.length ? 1 : a.name<b.name ? -1 : a.name>b.name ? 1 : 0  ; });
+		sorted=search.sort(function(a,b) { return a.name.length<b.name.length ? -1 : a.name.length>b.name.length ? 1 : a.name<b.name ? -1 : a.name>b.name ? 1 : 0  ; });	
 	}
 	
 	//VIEWS//
 	/*bar from Kerry Rodden’s Block 7090426*/
-	function path(p) {
+	function path(c,p) {
 		
-		var tag = { w:125,h:30,s:3,t:10,u:8,x:0 };
-		
+		var tag = { w:60,h:p.height,s:3,t:10};	
 		//create div
-		var div = d3.select("#"+p.location)
+		var div = d3.select("#"+c.location)
 			.classed("ick-container",true)
 			.append("div")
 			.attr("id","ick-path")
 			.style("display","inline-flex")
-			.style("line-height","30px")
+			.style("line-height",p.height+"px")
+			.style("height",p.height+"px")
 		//create svg
-		div.append("svg")
-			.attr("width", 30)
-			.attr("height", 30)
+		div.append("svg").attr("width",0).attr("height",p.height)
 		//mode
 		div.append("span").html("&nbspSplit by:&nbsp")
 		var s=div.append("select").attr("id","ick_mode")
-			s.on("change",function() {updateView();});
+			s.on("change",function() {updateView("split");});
 			
 		p.update= function(list) {
 			//update list of options
@@ -236,8 +237,8 @@ console.timeEnd("action-annot");
 						.style("display","none")
 						.select('ul').selectAll("li").remove()
 					tip("hide",d);
-					if(d!=node) {updatePath(d);}
-					updateView();
+					updatePath(d);
+					updateView("zoom");
 				})
 				.on('mouseover', function(d){ tip("show",d); })
 				.on('mouseout', function(d){ tip("hide",d); })
@@ -247,7 +248,7 @@ console.timeEnd("action-annot");
 			
 		//Search bar//
 		div.append("span").html("&nbspZoom on:&nbsp")
-		var s=div.append("input").attr("type","text")
+		div.append("input").attr("type","text")
 			.attr("class","ick-search")
 			.attr("size","7")
 			.on("focus",function() {
@@ -269,39 +270,40 @@ console.timeEnd("action-annot");
 				}
 				p.update(matches);
 			})
-			div.append("div").attr("class","ick-searchbox ick-box")
+		div.append("div").attr("class","ick-searchbox ick-box")
 			.style("display","none")
 			.append("ul")
 
 		p.setView = function() {
 			//group for tile
 			var sel = d3.select("#ick-path").select("svg")
-			.selectAll("g").data(paths);
+			.selectAll("g").data(paths.map(function(p){return p[0];}))
 			var g = sel.enter().append("g")
 			.attr("transform", d3.svg.transform()
 				.translate(function(d,i) {
-					return [i*(tag.w+tag.s),0]; 
+					return [i*(tag.w+tag.s),0]; // i*w+s , 0
 				})
 			)
 			//shape
 			g.append("polygon")
-			.attr("points", tail)
-			.style("fill", function(d) { return color(d.id); })
+			.attr("points", arrow(tag.w,tag.h,tag.t,tag.s,1)) //w h t s n
+			.style("fill", function(d) {return color(d.id); })
 			.style("cursor","pointer")
 			.on('mouseover', function(d){ info("show",d); })
 			.on('mouseout', function(d){ info("hide",d); })
 			.on("mousemove", function(d) { info("move"); })
 			.on("click", function(d,i) {
 				paths=paths.slice(0,i+1);
+				paths[i][1]="";
 				node=d;
-				updateView();
+				updateView("zoom");
 			})
 			//path
 			g.append("path")
 				.attr("id",function(d){return "map"+d.id;})
 				.style("opacity",0)
 				.style("pointer-events","none")
-				.attr("d",line())
+				.attr("d",line(tag.t+tag.s,tag.h/2,tag.w-tag.s,tag.h/2)) //0,h/2,w,h/2
 			//text
 			g.append("text")
 			.attr("text-anchor", "left")
@@ -309,76 +311,134 @@ console.timeEnd("action-annot");
 			.style("pointer-events","none")
 			.append("textPath")
 			.attr("xlink:href",function(d){return "#map"+d.id;})
-			.text(function(d) { return d.category+" = "+d.name; });
+			.text(function(d) { return d.name; });
 			// Remove exiting nodes.
 			sel.exit().remove();
 			//adapt container length
 			d3.select("#ick-path").select("svg").attr("width",(paths.length*(tag.w+tag.s)+2*tag.t)) //(paths.length*(tag.w+tag.s)+15));
-			
-			function line() {
-				var path = d3.svg.line()
-				.x(function(t) {return t[0];})
-				.y(function(t) {return t[1];})
-				.interpolate("linear");
-		
-				return path([[tag.t+tag.s,tag.h/2],[tag.w-tag.s,tag.h/2]]);
-			}
-
-			function tail(d,i) {
-				var res = [];
-				res.push([0,0]);
-				res.push([tag.w,0]);
-				res.push([tag.w+tag.t,tag.h/2]);
-				res.push([tag.w,tag.h]);
-				res.push([0,tag.h]);
-				if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
-					res.push([tag.t,tag.h/2]);
-				}
-				
-				return res.join(" ");
-			}
-			
+						
 			//options//
 			var opts=["annot. type","user","media type","media","language","key","relationship","value"];
-			var used=paths.map(function(p) {return p.category;})
-			//console.log("optmanag:",opts.filter(function(o) {return used.indexOf(o)<0;}));
-			//"value"
-			var sel = d3.select("#ick_mode").selectAll("option")
+			var used=paths.map(function(p) {return p[1];});
+			var current = used.pop();
+			d3.select("#ick_mode").selectAll("option").remove()
+			d3.select("#ick_mode").selectAll("option")
 			.data(opts.filter(function(o) {return used.indexOf(o)<0;}),function(d){return d;})
-			sel.enter().append("option").attr("value",function(d){return d;}).text(function(d){return d;})
-			sel.exit().remove();
+			.enter().append("option").attr("value",function(d){return d;}).text(function(d){return d;})
+			
+			d3.selectAll(".ick-search").property("value","")
 		}
 		
 		//first init
 		p.setView();
 	}
 
-	function treemap(p){
+	function progress(c,p) {
+		
+		//create div
+		var svg = d3.select("#"+c.location)
+			.classed("ick-container",true)
+			.append("svg")
+			.attr("id","ick-progress")
+			.attr("width", c.width)
+			.attr("height", p.height)
+			.style("display","inline-block")//disable bottom padding
+			.style("font-family","'Source Code Pro','Lucida Console',Monaco,monospace")
+			.style("font-size","10pt");
+		//ALL//
+		var g=svg.append("g").classed("ick-allitems",true).datum(total)
+		//rect
+		g.append("rect")
+			.attr("width", c.width)
+			.attr("height", p.height)
+			.attr("fill","#ddd")
+			.on('mouseover', function(d){ info("show",d); })
+			.on('mouseout', function(d){ info("hide",d); })
+			.on("mousemove", function(d) { info("move"); })
+			
+		//LOAD//
+		g=svg.append("g").classed("ick-loaded",true).datum(root)
+		//polygon
+		g.append("polygon")
+			.attr("points", arrow(0,p.height,10,0,0))
+			.style("fill", function(d) { return color(d.id); })
+			.on('mouseover', function(d){ info("show",d); })
+			.on('mouseout', function(d){ info("hide",d); })
+			.on("mousemove", function(d) { info("move"); })
+		
+		g=svg.append("g").classed("ick-displayed",true).datum(node)
+		//polygon
+		g.append("polygon")
+			.attr("points", arrow(0,p.height,10,0,0))
+			.style("fill", function(d) { return color(d.id); })
+			.on('mouseover', function(d){ info("show",d); })
+			.on('mouseout', function(d){ info("hide",d); })
+			.on("mousemove", function(d) { info("move"); })
+		
+		//ADD PATH AND TEXT
+		var sel=svg.selectAll("g").data([total,root,node])
+		//path
+		sel.append("path")
+			.attr("id",function(d,i){return "mapprog"+i+d.id;})
+			.style("opacity",0)
+			.style("pointer-events","none")
+			.attr("d",line(0,p.height/2,c.width,p.height/2)) //x,y,x,y
+		//text
+		sel.append("text")
+			.attr("dy","0.5ex")
+			.style("pointer-events","none")
+			.append("textPath")
+			.attr("xlink:href",function(d,i){return "#mapprog"+i+d.id;})
+			.style("text-anchor","end") 
+            .attr("startOffset","100%")
+
+			
+		p.setView = function() {
+			//d3.scales
+			p.x = d3.scale.linear().range([0, c.width]).domain([0, total.index.length]);
+			
+			d3.selectAll("#ick-progress").selectAll("polygon").data([root,node])
+			.attr("points",function(d) {return arrow(p.x(d.index.length),p.height,10,0,0);})
+			.style("fill", function(d) { return color(d.id); })
+			
+			d3.selectAll("#ick-progress").selectAll("path").data([total,root,node])
+			.attr("d",function(d){return line(0,p.height/2,p.x(d.index.length),p.height/2);})
+			
+			d3.selectAll("#ick-progress").selectAll("textPath").data([total,root,node])
+			.text(function(d){return d.name+": "+d.index.length;})
+		}
+	}
+	
+	function treemap(c,p){
+		//margin inner final svg
+		margin = {top:0, right:0, bottom:0, left:1}; 
+		p.h = c.height - margin.top - margin.bottom; 
+		p.w = c.width - margin.right - margin.left;
+			
 		//create svg
-		var svg = d3.select("#"+p.location)
+		var svg = d3.select("#"+c.location)
 			.classed("ick-container",true)
 			.append("svg")
 			.attr("id","ick-treemap")
-			.attr("width", p.width)
-			.attr("height", p.height)
+			.attr("width", c.width)
+			.attr("height", c.height)
 			.style("display","inline-block")//disable bottom padding
+		
+		//backgroung
+		svg.append("rect") 
+			.attr("width","100%")
+			.attr("height","100%")
+			.attr("fill","#ddd")
+			.attr("class","ick-bg");
 
 		//group for visual elements
 		svg.append("g").classed("ick-visual",true)
+			.attr("transform", "translate("+margin.left+","+margin.top+")") //margin left, top
 
 		//group for label elements
 		var labels = svg.append("g")
 			.classed("ick-labels",true)
 			.style("font-family","'Source Code Pro','Lucida Console',Monaco,monospace");
-		
-		//highlight elememt//
-		svg.append("rect")
-			.classed("ick-hl",true)
-			.style("stroke","#000")
-			.style("stroke-width","5")
-			.style("stroke-opacity",0.5)
-			.style("fill","none")
-			.style("pointer-events","none");		
 		
 		p.rectTranslate = d3.svg.transform()
 			.translate(function(d) { 
@@ -388,17 +448,10 @@ console.timeEnd("action-annot");
 				return [x,y]; 
 			});
 
-		p.setView = function() {
-			//MARGIN//
-			//margin inner final svg
-			margin = {top:0, right:0, bottom:0, left:1}; 
-			//if(!config.options.headers) {margin.top=20;}
-			h = p.height - margin.top - margin.bottom; 
-			w = p.width - margin.right - margin.left;
-			
+		p.setView = function() {			
 			//D.LAYOUT//
 			p.layout = d3.layout.treemap() //array of all nodes
-				.size([w, h]) //size of map
+				.size([p.w, p.h]) //size of map
 				.round(false) //round the value (for scale)
 				.sticky(true) //keep child position when transform
 				.value(function(d){return d.index.length;});
@@ -406,8 +459,8 @@ console.timeEnd("action-annot");
 			saveCoords(node,"treemap");
 		
 			//d3.scales
-			p.x = d3.scale.linear().range([0, w]).domain([node.x, node.x + node.dx]);
-			p.y = d3.scale.linear().range([0, h]).domain([node.y, node.y + node.dy]);
+			p.x = d3.scale.linear().range([0, p.w]).domain([node.x, node.x + node.dx]);
+			p.y = d3.scale.linear().range([0, p.h]).domain([node.y, node.y + node.dy]);
 			
 			//VISUAL//
 			var sel = d3.select("#ick-treemap").select(".ick-visual").datum(node)
@@ -422,7 +475,7 @@ console.timeEnd("action-annot");
 			.on("click", function(d) {
 				tip("hide",d);
 				updatePath(d);
-				updateView();
+				updateView("zoom");
 			})
 			.on('mouseover', function(d){ tip("show",d); })
 			.on("mousemove", function(d) { tip("move"); })
@@ -442,10 +495,6 @@ console.timeEnd("action-annot");
 			//delete
 			sel.exit().transition().duration(1000)
 			.style("opacity",0)
-/*			.attr("transform","translate(0,0)")
-			.attr("width","0")
-			.attr("height","0")
-*/		
 			.remove();
 			
 			//LABELS//
@@ -493,16 +542,6 @@ console.timeEnd("action-annot");
 				var rw=p.x(dc.x+dc.dx)-p.x(dc.x)-1; //rect width
 				var rh=p.y(dc.y+dc.dy)-p.y(dc.y)-1; //rect height
 
-/*				if(config.options.headers && d.children) {
-					ax=p.x(dc.x)+mw;
-					ay=p.y(dc.y+10);
-					bx=p.x(dc.x+dc.dx)-mw;
-					by=ay;
-					//margin
-					if(ax>=bx || rh<mh) {bx=ax;}
-				}
-*/
-//				else {
 					if(rw<rh) {//vertical
 						ax=p.x(dc.x+(dc.dx/2));
 						ay=p.y(dc.y);
@@ -520,7 +559,6 @@ console.timeEnd("action-annot");
 						//margin && min height
 						if(ax+mw<bx-mw && rh>mh) { ax=ax+mw; bx=bx-mw;}
 						else {bx=ax;}					
-//					}
 				}
 				
 				var path = d3.svg.line()
@@ -530,129 +568,33 @@ console.timeEnd("action-annot");
 		
 				return path([[ax,ay],[bx,by]]);
 			}
-
-		}
-		
-/*		p.setColor = function(mode) {
-			var c = d3.scale.ordinal().range(colors.category); //probe + sample type
-			var sel = d3.select("#rd-treemap").select(".rd-visual").selectAll(".leaf"); //value + probe + sample type
-			
-			//headers gray
-			d3.select("#rd-treemap").select(".rd-visual").selectAll(".node").style("fill","#ddd")
-			
-			if(mode=="value") {
-				c = d3.scale.linear().domain([Math.log2(2),(Math.log2(10)-Math.log2(2)/2),Math.log2(10)]).range(colors.range);
-				sel.style("fill",function(d){ return c(Math.log2(d.value)); })
-			}	
-			else if(mode=="probe") {
-				sel.style("fill",function(d){ return c(d.data.probe);  })
-			}
-			else if(mode=="sample type") {
-				sel.style("fill",function(d){ return c(d.parent.data.type); })
-			}
-			else {
-				sel = d3.select("#rd-treemap").select(".rd-visual").selectAll("rect"); //sample + organ + cell
-				if(mode=="sample") { 
-					sel.style("fill",function(d){
-						var n=d;
-						while(n.depth>3 && n.parent) { n=n.parent; }
-						return n.depth==3 ? c(n.name) : "#ddd";
-					})
-				}
-				else {
-					c = colors.type; //organ + cell
-					var depth;
-					if(mode=="organ type") { depth=2; }
-					else if(mode=="cell type") { depth=1; }
-					
-					sel.style("fill",function(d){
-						var n=d;
-						while(n.depth>depth && n.parent) { n=n.parent; }
-						return n.depth==depth ? c[n.name] : "#ddd";
-					})
-				}
-			}
-		}
-*/
-/*		p.setLabel = function(mode) {
-			//Label text
-			var txt = labels.datum(root).selectAll("textPath")
-			//headers
-			if(config.options.headers) { 
-				txt.filter(function (d){return d.children;})
-				.text(function(d){ return d.name; })
-			}
-			//leaves
-			if(mode=="value") {
-				txt.filter(function (d){return !d.children;})
-				.text(function(d){ return d.value;});
-			}
-			else if(mode=="probe") {
-				txt.filter(function (d){return !d.children;})
-				.text(function(d){return d.data.probe;});
-			}
-			else if(mode=="sample type") {
-				txt.filter(function (d){return !d.children;})
-				.text(function(d){return d.parent.data.type;}); }
-			else {
-				var depth;
-				if(mode=="sample") {depth=3;}
-				else if(mode=="organ type") {depth=2;}
-				else if(mode=="cell type") {depth=1;}
-				txt.filter(function (d){return !d.children;})
-				.text(function(d){
-					var n=d;
-					while(n.depth>depth && n.parent) { n=n.parent; }
-					return n.name;
-				})
-			}
-		}
-*/	
-		p.setHL = function(d) {
-			if(d.view.treemap.coords) {
-				var n = d.view.treemap.coords;
-				d3.select("#ick-treemap").select(".ick-hl")
-				.datum(d)
-				.attr("transform", p.rectTranslate)
-				.attr("width", function(d) {
-					var dc=d.view.treemap.coords;
-					return p.x(dc.x+dc.dx)-p.x(dc.x)-1; 
-				})
-				.attr("height", function(d) { 
-					var dc=d.view.treemap.coords;
-					return p.y(dc.y+dc.dy)-p.y(dc.y)-1;
-				})
-			}
 		}
 	}
 	
-	function saveCoords(n,layout) {
-		if(!n.view) {n.view={};}
-		if(!n.view[layout]) {n.view[layout]={};}
-		n.view[layout].coords={"x":n.x,"y":n.y,"dx":n.dx,"dy":n.dy};
-		//recursive call
-		if(n.children) { 
-			for (var i in n.children) {
-				saveCoords(n.children[i],layout);
-			}
+	//UPDATE//	
+	function updateView(mode){
+		if(mode=="load") { //re-split from root
+			paths.forEach(function(path) {
+				reduce(path[0],path[1]);
+			});
+			param["progress"].setView();
 		}
-	}
-		
-	function updateView(){
-		var mode=d3.select("#ick_mode").node().value;
-		reduce(node,mode);
-		for(var l in param) { //foreach layout	
-			param[l].setView();
+		else if(mode=="split"){
+			reduce(paths[paths.length-1][0]);
 		}
-//console.log("struct:",root);
+		else if(mode=="zoom") {
+			param["path"].setView();
+			reduce(paths[paths.length-1][0]);
+			param["progress"].setView();
+		}	
+		param["treemap"].setView();
 	}
 	
 	function updatePath(n) {
-		paths.push(n);
-		node=n;
 		var mode = d3.select("#ick_mode").node().value;
-		var opt=d3.select("#ick_mode").select("option[value='"+mode+"']")
-		opt.remove();
+		paths[paths.length-1][1]=mode;
+		if(n!=node){paths.push([n]);}
+		node=n;
 	}
 /*		//Multi bar chart
 		//compute data for barchart
@@ -714,6 +656,19 @@ console.timeEnd("action-annot");
 			  .text(function(d) { return d; });	
 */
 
+	//UTILITIES//
+	function saveCoords(n,layout) {
+		if(!n.view) {n.view={};}
+		if(!n.view[layout]) {n.view[layout]={};}
+		n.view[layout].coords={"x":n.x,"y":n.y,"dx":n.dx,"dy":n.dy};
+		//recursive call
+		if(n.children) { 
+			for (var i in n.children) {
+				saveCoords(n.children[i],layout);
+			}
+		}
+	}
+	
 	function tip(state,d) {
 		if(state=="show") {
 			d3.select("#ick-tip")
@@ -751,6 +706,25 @@ console.timeEnd("action-annot");
 			d3.select("#ick-info").style("top", (d3.event.pageY-10)+"px")
             .style("left", (d3.event.pageX+10)+"px");
 		}
+	}
+	
+	function line(x1,y1,x2,y2) {
+		return "M"+x1+","+y1+" L"+x2+","+y2;
+	}
+	
+	function arrow(w,h,t,s,n) { 
+		//width,height,tail,separator,n
+		var res = [];
+		res.push([0,0]);
+		res.push([+w,0]);
+		res.push([+w+t,+h/2]);
+		res.push([+w,+h]);
+		res.push([0,+h]);
+		if(n==1) {//left empty arrow
+			res.push([+t,+h/2]);
+		}
+//console.log(res);
+		return res.join(" ");
 	}
 	
 	//DEFINE OR EXPORTS//
