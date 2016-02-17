@@ -1,9 +1,9 @@
 !(function() {
 	
-	var ick = { version: "0.1" };
+	var ick = { version: "0.2" };
 	
 	var url="http://api.iclikval.riken.jp/annotation";
-	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6ImVmNjU5OWFmNTIwNjJlMzcyZjA3ZmM3NzAyNDFjMjE2NzhiYzc2YmMiLCJqdGkiOiJlZjY1OTlhZjUyMDYyZTM3MmYwN2ZjNzcwMjQxYzIxNjc4YmM3NmJjIiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTU2NzU4NDgsImlhdCI6MTQ1NDQ2NjI0OCwidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.JFhOq-OJLCeCK7Brm7W1A_GWl2zqIwHWh-i3eiOXDZjkH4c5ODvJgWV9LzOD6VFnBhKcOXJ5upBtruZPYcNwIlp-JQAYXRvo4bc1yEksnFKOVESs4NrTGV7JUHsyZu1KHyVdRCCYJnxtbwaKHRAkfMG50u7DI8PRyo78uB9T17ZL9wupU4JsorWfaU0-oynIkW9XdsSWwyg2hq2X-kJOk-IekWxAFounYl9HZl7KMJMQMLWTg5OxGrL6MlsrUuciwx_C5L4JQhuuvi_53CRuKO1K18AUCAbYNY-sz_UTN368l0kcRq5FrUOwYe17bu-DUeHEHWfWE-U2RiwJ_fP6DA";
+	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6IjZjNDg4YmIzMmM2ZmJjNjI1MmFhYmE2MmQwN2FhYzEwNmU5N2ZmYjQiLCJqdGkiOiI2YzQ4OGJiMzJjNmZiYzYyNTJhYWJhNjJkMDdhYWMxMDZlOTdmZmI0IiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTY4ODc0MTcsImlhdCI6MTQ1NTY3NzgxNywidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.INqWl2AaA4RRy3Tvp8Ldr2L0WPPdO1Njx5rAN4Y9f5_IrM9_WUbppqqlOEG4_P6Zva_ychYQTFWaPW6KDYsHlFFi1YOcgop03SgZxk2Zy9TtFEUawZTH2dZZUhPO1-Lg891B0_DEqLUm_XWj__Z6VT8d-EXw8U9D5wEWiLE1rw9YpADPqWKWmUvOjH7HpuXRDLEwRKIL0B4mpRrYe-AAGMKluTINHj-G65RfZ8ydXRbW8WvcUpC_rrVI34zRwMnTfIHZyBkr4XlsLzGVWV5t9XIJRfKeDqBLcHmb-kY8CdAVUhHa5EFe0AP_L_JssxbFg9PQ1GMWy5h7yRHblVjPYg";
 	//Query Params//
 	var currentPage=1;
 	var lastPage=""; // "" to the end
@@ -12,8 +12,8 @@
 	var config={};//config from index.html
 	var param={};//param from ick.js
 	var annots=[];//list of annotations object
-	var total={"item":"Total","id":0,"category":"Total","index":{"length":0},"children":[]};
-	var root={"item":"Annotations","id":1,"category":"Loaded","index":[],"children":[]};
+	var total={"item":"Total","id":0,"category":"Total","index":{"length":0},"news":[],"children":[]};
+	var root={"item":"Annotations","id":1,"category":"Loaded","index":[],"news":[],"children":[]};
 	var node=root; //current node
 	var paths=[[root,"annot. type"]]; //list of filters [node,split mode]
 	var sorted=[]; //sorted list of leaves for search
@@ -114,20 +114,17 @@
 			.get(function(err,data) {
 //console.timeEnd("getAnnot");
 console.log("page",currentPage,"read");
-if(err){console.log("ERR:"+err);}
+if(err){console.log("ERR:",err);}
 
 				action(data);
-				total.index.length=data.total_items;
-				root.index=d3.range(annots.length);
+
 				//recursive call
 				if(data.page<data.page_count && (lastPage>0 ? currentPage<lastPage : true) ) { //if lastPage="", read all
 					currentPage++;
-					updateView("load");
 //console.time("getAnnot");
 					getAnnotations(currentPage);
 				}
 				else {
-					updateView("load");
 console.log("data",data);
 console.log("annots",annots);					
 //console.timeEnd("all");
@@ -137,23 +134,42 @@ console.log("annots",annots);
 	
 	function action(data) {
 //console.time("action-annot");
-		annots=annots.concat(data._embedded.annotation)
+		total.index.length=data.total_items;
+		var news=d3.range(root.index.length,root.index.length+data._embedded.annotation.length);
+		annots=annots.concat(data._embedded.annotation);
+		root.index=root.index.concat(news);
+		root.news=news;
+		updateView("load");
 //console.timeEnd("action-annot");
 	}
 	
-	function reduce(node,mode) {
+	function reduce(node,mode,load) {
 		//init
 		if(!mode) {mode=d3.select("#ick_mode").node().value;}
+		var idxs=[]; //list of annot
 		var cats=[];
 		var children=[];
-		if(node.children){
-			cats=node.children.map(function(c){ c.index=[]; return c.id;}); //list of categories (delete index)
-			children=node.children;
-		}
 		var cat=""; //current category
 		var id=""; //current id (cat replace)
 		var i=0; //index of children
-		
+		if(load) { //Load new annot
+			idxs=node.news; //update only new annot
+			if(node.children){
+				cats=node.children.map(function(c){return c.id;});
+				children=node.children;
+			}
+		}
+		else { //update all annot
+			idxs=node.index;
+			if(node.children){
+				cats=node.children.map(function(c){ //list of categories
+					c.index=[];c.children=[]; //delete index and descendant
+					return c.id;
+				});
+			children=node.children;
+			}
+		}
+	
 		//category accessor
 		function getCat(idx) {
 			if(mode=="annot. type" || mode=="user") {return annots[idx].reviewer.username;}
@@ -167,40 +183,37 @@ console.log("annots",annots);
 		
 		if(mode=="annot. type") {
 			if(cats.indexOf("Automatic")<0) {
-				children.push({"item":"Automatic","id":"Automatic","category":mode,"index":[],"children":[]});
+				children.push({"item":"Automatic","id":"Automatic","category":mode,"index":[],"news":[],"children":[]});
 				cats.push("Automatic");
 			}
 			if(cats.indexOf("Human")<0) {
-				children.push({"item":"Human","id":"Human","category":mode,"index":[],"children":[]});
+				children.push({"item":"Human","id":"Human","category":mode,"index":[],"news":[],"children":[]});
 				cats.push("Human");
 			}
 			//short loop
-			node.index.forEach(function(idx) {
+			idxs.forEach(function(idx) {
 				if(getCat(idx)=="iclikval") { i=0; }
 				else { i=1; }
 				children[i].index.push(idx);
+				children[i].news.push(idx);
 			});
 		}
 		else {
-			node.index.forEach(function(idx) {
+			idxs.forEach(function(idx) {
 				cat=getCat(idx);
 				id=cat.replace(/\W/g,"");
 				i=cats.indexOf(id);
 				if(i<0){
 					i=cats.length;
 					cats.push(id);
-					children.push({"item":cat,"id":id,"category":mode,"index":[],"children":[]});
+					children.push({"item":cat,"id":id,"category":mode,"index":[],"news":[],"children":[]});
 				}
 				children[i].index.push(idx);
+				children[i].news.push(idx);
 			});
 		}
-		
+		node.news=[];
 		node.children=children.filter(function(c){return c.index.length>0;});
-		
-		//sort children for search
-		var search=node.children.slice(0);
-		search.push(node);
-		sorted=search.sort(function(a,b) { return a.item.length<b.item.length ? -1 : a.item.length>b.item.length ? 1 : a.item<b.item ? -1 : a.item>b.item ? 1 : 0  ; });	
 	}
 	
 	//VIEWS//
@@ -576,7 +589,7 @@ console.log("annots",annots);
 	function updateView(mode){
 		if(mode=="load") { //re-split from root
 			paths.forEach(function(path) {
-				reduce(path[0],path[1]);
+				reduce(path[0],path[1],true);
 			});
 			param["progress"].setView();
 		}
@@ -589,6 +602,11 @@ console.log("annots",annots);
 			param["progress"].setView();
 		}	
 		param["treemap"].setView();
+		
+		//sort children for search
+		var search=node.children.slice(0);
+		search.push(node);
+		sorted=search.sort(function(a,b) { return a.item.length<b.item.length ? -1 : a.item.length>b.item.length ? 1 : a.item<b.item ? -1 : a.item>b.item ? 1 : 0  ; });	
 	}
 	
 	function updatePath(n) {
@@ -709,7 +727,6 @@ console.log("annots",annots);
 		if(n==1) {//left empty arrow
 			res.push([+t,+h/2]);
 		}
-//console.log(res);
 		return res.join(" ");
 	}
 	
