@@ -10,7 +10,10 @@
 	
 	<div id="path"></div>
 	<div id="load"></div>
-	<div id="view"></div>
+	<div style="display:flex">
+		<div id="view"></div>
+		<div id="pie"></div>
+	</div>
 	
 	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 	<script type="text/javascript" src="./d3-transform.js"></script>
@@ -23,6 +26,9 @@ console.log("iclikval",ick.version);
 	var config={
 		"path":{
 			"location":"path"
+		},
+		"pie":{
+			"location":"pie"
 		},
 		"progress":{
 			"location":"load",

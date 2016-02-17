@@ -50,6 +50,9 @@
 		
 		param.progress={"height":20};
 		progress(config.progress,param.progress);
+		
+		param.pie={"radius":50,"margin":5};
+		pie(config.pie,param.pie);
 			
 		param.treemap={};
 		treemap(config.treemap,param.treemap);
@@ -169,7 +172,7 @@ console.log("annots",annots);
 			children=node.children;
 			}
 		}
-	
+console.log("reduce",node.item,idxs.length);	
 		//category accessor
 		function getCat(idx) {
 			if(mode=="annot. type" || mode=="user") {return annots[idx].reviewer.username;}
@@ -423,6 +426,75 @@ console.log("annots",annots);
 		}
 	}
 	
+	function pie(c,p) {
+		
+		var pie=d3.layout.pie()
+			.sort(null)
+			.value(function(d){return d.index.length;});
+			
+		var arc = d3.svg.arc()
+			.outerRadius(p.radius)
+			.innerRadius(0);
+
+		p.setView=function() {
+			//group for tile
+			var sel = d3.select("#"+c.location)
+				.selectAll(".ick-pie").data(paths)
+			var svg = sel.enter().append("svg")
+				.attr("class","ick-pie")
+				.attr("width",p.radius*2+p.margin)
+				.attr("height",p.radius*2+p.margin)
+				.attr("transform", "translate(" + (+p.radius+p.margin/2) + "," + (+p.radius+p.margin/2) + ")")
+				.style("float","left")
+				
+			svg.selectAll(".arc")
+				.data(function(d) {
+					console.log(d);
+					console.log(d[0].children);
+					return pie(d[0].children);
+				})
+				.enter()
+				//.append("g")
+				.append("path")
+				.attr("d",arc)
+				.style("fill", function(d) {return color(d.data.id); })
+				.attr("class","arc")
+				
+				
+/*
+//create new
+			sel.enter().append("rect")
+			.attr("class",function(d){return "v"+d.id;})
+			.style("fill",function(d){return color(d.id);})
+			.on("click", function(d) {
+				tip("hide",d);
+				updatePath(d);
+				updateView("zoom");
+			})
+			.on('mouseover', function(d){ tip("show",d); })
+			.on("mousemove", function(d) { tip("move"); })
+			.on("mouseout", function(d){ tip("hide",d); })	
+			//update All
+			sel.transition().duration(1000)
+			.attr("transform", p.rectTranslate)
+			.attr("width", function(d) { //w = x2-x1
+				var dc=d.view.treemap.coords;
+				return p.x(dc.x+dc.dx)-p.x(dc.x)-1; 
+			})
+			.attr("height", function(d) { //h = y2-y1
+				var dc=d.view.treemap.coords;
+				return p.y(dc.y+dc.dy)-p.y(dc.y)-1;
+			})
+			.style("opacity",1);
+			//delete
+			sel.exit().transition().duration(1000)
+			.style("opacity",0)
+			.remove();
+*/			
+		}
+		
+	}
+	
 	function treemap(c,p){
 		//margin inner final svg
 		margin = {top:0, right:0, bottom:0, left:1}; 
@@ -602,6 +674,7 @@ console.log("annots",annots);
 			param["progress"].setView();
 		}	
 		param["treemap"].setView();
+		param["pie"].setView();
 		
 		//sort children for search
 		var search=node.children.slice(0);
