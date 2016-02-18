@@ -1,6 +1,6 @@
 !(function() {
 	
-	var ick = { version: "0.2" };
+	var ick = { version: "0.3" };
 	
 	var url="http://api.iclikval.riken.jp/annotation";
 	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6IjZjNDg4YmIzMmM2ZmJjNjI1MmFhYmE2MmQwN2FhYzEwNmU5N2ZmYjQiLCJqdGkiOiI2YzQ4OGJiMzJjNmZiYzYyNTJhYWJhNjJkMDdhYWMxMDZlOTdmZmI0IiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTY4ODc0MTcsImlhdCI6MTQ1NTY3NzgxNywidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.INqWl2AaA4RRy3Tvp8Ldr2L0WPPdO1Njx5rAN4Y9f5_IrM9_WUbppqqlOEG4_P6Zva_ychYQTFWaPW6KDYsHlFFi1YOcgop03SgZxk2Zy9TtFEUawZTH2dZZUhPO1-Lg891B0_DEqLUm_XWj__Z6VT8d-EXw8U9D5wEWiLE1rw9YpADPqWKWmUvOjH7HpuXRDLEwRKIL0B4mpRrYe-AAGMKluTINHj-G65RfZ8ydXRbW8WvcUpC_rrVI34zRwMnTfIHZyBkr4XlsLzGVWV5t9XIJRfKeDqBLcHmb-kY8CdAVUhHa5EFe0AP_L_JssxbFg9PQ1GMWy5h7yRHblVjPYg";
@@ -58,59 +58,6 @@
 			
 		param.treemap={};
 		treemap(config.treemap,param.treemap);
-
-		
-/*		//Multi bar chart
-		var margin = {top: 20, right: 20, bottom: 100, left: 100};
-		params.width = 1400 - margin.left - margin.right;
-		params.height = 600 - margin.top - margin.bottom;
-
-		//x axis: users
-		params.x0 = d3.scale.ordinal().rangeRoundBands([0, params.width], .1);
-		//x axis: key/rel/value
-		params.x1 = d3.scale.ordinal();
-		//y axis: numeric value
-		params.y = d3.scale.linear().range([params.height, 0]);
-
-		var svg = d3.select("#"+loc).append("svg")
-			.attr("width", params.width + margin.left + margin.right)
-			.attr("height", params.height + margin.top + margin.bottom)
-			.append("g")
-			.attr("class","ick-view")
-			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-		
-		params.xAxis = d3.svg.axis()
-			.scale(params.x0)
-			.orient("bottom");
-
-		params.yAxis = d3.svg.axis()
-			.scale(params.y)
-			.orient("left")
-			.tickFormat(d3.format("0."));
-			
-		svg.append("g")
-			.attr("class", "xAxis")
-			.attr("transform", "translate(0," + params.height + ")")
-			.call(params.xAxis)
-			.append("text")
-			  .attr("x", params.width)
-			  .attr("y", -18)
-			  .attr("dy", ".71em")
-			  .style("text-anchor", "end")
-			  .text("Users");
-			
-		svg.append("g")
-			.attr("class", "yAxis")
-			.call(params.yAxis)
-			.append("text")
-			  .attr("transform", "rotate(-90)")
-			  .attr("y", 6)
-			  .attr("dy", ".71em")
-			  .style("text-anchor", "end")
-			  .text("Annotations");
-		
-		svg.append("g").attr("class", "legend")
-*/
 	}
 	
 	function getAnnotations() {
@@ -119,7 +66,7 @@
 			.get(function(err,data) {
 //console.timeEnd("getAnnot");
 console.log("page",currentPage,"read");
-if(err){console.log("ERR:",err);}
+				if(err){console.log("ERR:",err);}
 
 				action(data);
 
@@ -175,7 +122,7 @@ console.log("annots",annots);
 			children=node.children;
 			}
 		}
-console.log("reduce",node.item,idxs.length);	
+	
 		//category accessor
 		function getCat(idx) {
 			if(mode=="annot. type" || mode=="user") {return annots[idx].reviewer.username;}
@@ -306,7 +253,7 @@ console.log("reduce",node.item,idxs.length);
 			)
 			//shape
 			g.append("polygon")
-			.attr("points", arrow(tag.w,tag.h,tag.t,tag.s,1)) //w h t s n
+			.attr("points", function(d,i){return arrow(tag.w,tag.h,tag.t,tag.s,i);}) //w h t s n
 			.style("fill", function(d) {return color(d.id); })
 			.style("cursor","pointer")
 			.on('mouseover', function(d){ tip("show",d); })
@@ -380,7 +327,7 @@ console.log("reduce",node.item,idxs.length);
 		g=svg.append("g").classed("ick-loaded",true).datum(root)
 		//polygon
 		g.append("polygon")
-			.attr("points", arrow(0,p.height,10,0,0))
+			.attr("points", function(d,i) { return arrow(0,p.height,10,0,i); })
 			.style("fill", function(d) { return color(d.id); })
 			.on('mouseover', function(d){ tip("show",d); })
 			.on('mouseout', function(d){ tip("hide",d); })
@@ -389,7 +336,7 @@ console.log("reduce",node.item,idxs.length);
 		g=svg.append("g").classed("ick-displayed",true).datum(node)
 		//polygon
 		g.append("polygon")
-			.attr("points", arrow(0,p.height,10,0,0))
+			.attr("points", function(d,i) { return arrow(0,p.height,10,0,i); })
 			.style("fill", function(d) { return color(d.id); })
 			.on('mouseover', function(d){ tip("show",d); })
 			.on('mouseout', function(d){ tip("hide",d); })
@@ -450,16 +397,29 @@ console.log("reduce",node.item,idxs.length);
 			//create new svg
 			var svg = sel.enter().append("svg")
 				.attr("class","ick-pie")
-				.attr("width",w) //m-pie-m
-				.attr("height",h)//m-txt-m-pie-m-txt-m
-				//.attr("transform", "translate(" + p.margin + "," + p.margin + ")")
+				.attr("width",w)
+				.attr("height",h)
 				.style("float","left")
+			//create shape
+			svg.append("polygon")
+			.attr("points", function(d,i) { return arrow(w-10,22,10,0,i); }) //w h t s n
+			.style("fill", function(d) {return color(d[0].id); })
+			.style("cursor","pointer")
+			.on('mouseover', function(d){ tip("show",d[0]); })
+			.on('mouseout', function(d){ tip("hide",d[0]); })
+			.on("mousemove", function(d) { tip("move"); })
+			.on("click", function(d,i) {
+				paths=paths.slice(0,i+1);
+				paths[i][1]="";
+				node=d[0];
+				updateView("zoom");
+			})
 			//create title text
 			svg.append("path")
 				.attr("id",function(d){return "mappietitle"+d[0].id;})
 				.style("opacity",0)
 				.style("pointer-events","none")
-				.attr("d",line(0,11,w,11))
+				.attr("d",line(10,11,w-10,11))
 			svg.append("text")
 				.attr("class","ick-pie-title")
 				.attr("text-anchor", "left")
@@ -573,6 +533,7 @@ console.log("reduce",node.item,idxs.length);
 			sel.enter().append("rect")
 			.attr("class",function(d){return "v"+d.id;})
 			.style("fill",function(d){return color(d.id);})
+			.style("cursor","pointer")
 			.on("click", function(d) {
 				tip("hide",d);
 				updatePath(d);
@@ -709,66 +670,6 @@ console.log("reduce",node.item,idxs.length);
 		node=n;
 	}
 
-/*		//Multi bar chart
-		//compute data for barchart
-		var bars = d3.keys(annots["iclikval"].length)//.filter(function(key) { return key !== "annot"; });
-		users.forEach(function(d) {
-			d.vals = bars.map(function(category) { return {user: d.item, category: category, value: +annots[d.item].length[category]}; });
-		 });
-		
-		//update view
-		params.x0.domain(users.map(function(d) { return d.item; }));
-		params.x1.domain(bars).rangeRoundBands([0, params.x0.rangeBand()]);
-		params.y.domain([0, d3.max(users, function(d) { return d3.max(d.vals, function(d) { return d.value; }); })]);
-		
-		params.xAxis.scale(params.x0)
-		params.yAxis.scale(params.y)
-		d3.select(".xAxis").call(params.xAxis)
-			.selectAll(".tick").select("text")
-			.attr("transform", "rotate(90)")
-			.attr("y", 0)
-			.attr("x", 10)
-			.attr("dy", "0.25em")
-			.style("text-anchor", "start");
-		d3.select(".yAxis").call(params.yAxis);
-		
-		var sel=d3.select(".ick-view").selectAll(".user").data(users)
-		var user=sel.enter().append("g")
-			.attr("class", "user")
-		sel.attr("transform", function(d) { return "translate(" + params.x0(d.item) + ",0)"; });
-			
-		sel=d3.select("svg").selectAll(".user").selectAll("rect").data(function(d) { return d.vals; })
-		sel.enter().append("rect")
-			.style("fill", function(d) { return color(d.category); })
-			.attr("id",function(d) { return d.user+"-"+d.category; })
-			.on('mouseover', function(d){ tip("show",d); })
-			.on("mousemove", function(d) { tip("move"); })
-			.on("mouseout", function(d){ tip("hide",d); })	
-		sel.attr("width", params.x1.rangeBand())
-			.attr("x", function(d) { return params.x1(d.category); })	
-		sel.transition().duration(1000)
-			.attr("y", function(d) { return params.y(d.value); })
-			.attr("height", function(d) { return params.height - params.y(d.value); })
-
-		var legend = d3.select("svg").select(".legend").selectAll(".item")
-			.data(bars.slice())
-			.enter().append("g")
-				.attr("class", "item")
-				.attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-		legend.append("rect")
-			  .attr("x", params.width - 18)
-			  .attr("width", 18)
-			  .attr("height", 18)
-			  .style("fill", color);
-
-		legend.append("text")
-			  .attr("x", params.width - 24)
-			  .attr("y", 9)
-			  .attr("dy", ".35em")
-			  .style("text-anchor", "end")
-			  .text(function(d) { return d; });	
-*/
-
 	//UTILITIES//
 	function saveCoords(n,layout) {
 		if(!n.view) {n.view={};}
@@ -817,7 +718,7 @@ console.log("reduce",node.item,idxs.length);
 		res.push([+w+t,+h/2]);
 		res.push([+w,+h]);
 		res.push([0,+h]);
-		if(n==1) {//left empty arrow
+		if(n>0) {//left empty arrow
 			res.push([+t,+h/2]);
 		}
 		return res.join(" ");
