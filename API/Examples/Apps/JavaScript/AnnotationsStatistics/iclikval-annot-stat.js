@@ -38,6 +38,8 @@
 		+".ick-box ul{margin:0px;padding:0px 5px;}\n"
 		+".ick-box ul li {list-style-type:none;list-style-position:outside;}\n"
 		+".ick-box ul li:hover{background-color:#666;cursor:pointer;}\n"
+		+".ick-pie{float:left;border:1px solid #000;border-radius:.2em;padding:3px}\n"
+		
 		);
 		
 		//hidden div
@@ -51,7 +53,7 @@
 		param.progress={"height":20};
 		progress(config.progress,param.progress);
 		
-		param.pie={"radius":50,"margin":5};
+		param.pie={"radius":50};
 		pie(config.pie,param.pie);
 			
 		param.treemap={};
@@ -435,64 +437,76 @@ console.log("reduce",node.item,idxs.length);
 		var arc = d3.svg.arc()
 			.outerRadius(p.radius)
 			.innerRadius(0);
+		
+		var w=p.radius*2; //pie
+		var h=p.radius*2+22*2; //txt-pie-txt
+
 
 		p.setView=function() {
-			//group for tile
+			//CREATE
 			var sel = d3.select("#"+c.location)
 				.selectAll(".ick-pie").data(paths)
+			//create new svg
 			var svg = sel.enter().append("svg")
 				.attr("class","ick-pie")
-				.attr("width",p.radius*2+p.margin)
-				.attr("height",p.radius*2+p.margin)
-				.attr("transform", "translate(" + (+p.radius+p.margin/2) + "," + (+p.radius+p.margin/2) + ")")
+				.attr("width",w) //m-pie-m
+				.attr("height",h)//m-txt-m-pie-m-txt-m
+				//.attr("transform", "translate(" + p.margin + "," + p.margin + ")")
 				.style("float","left")
-				
-			svg.selectAll(".arc")
-				.data(function(d) {
-					console.log(d);
-					console.log(d[0].children);
-					return pie(d[0].children);
-				})
-				.enter()
-				//.append("g")
-				.append("path")
-				.attr("d",arc)
+			//create title text
+			svg.append("path")
+				.attr("id",function(d){return "mappietitle"+d[0].id;})
+				.style("opacity",0)
+				.style("pointer-events","none")
+				.attr("d",line(0,11,w,11))
+			svg.append("text")
+				.attr("class","ick-pie-title")
+				.attr("text-anchor", "left")
+				.attr("dy","0.5ex")
+				.style("pointer-events","none")
+				.append("textPath")
+				.attr("xlink:href",function(d){return "#mappietitle"+d[0].id;})
+				.text(function(d) { return d[0].item; });
+			svg.append("g")
+				.attr("transform", "translate(" + w/2 + "," + h/2 + ")")
+			//create pie
+			var path=sel.selectAll("g").selectAll(".arc")
+				.data(function(d) {return pie(d[0].children);},function(d){return d.data.id;})
+			path.enter().append("path")
 				.style("fill", function(d) {return color(d.data.id); })
-				.attr("class","arc")
+				.attr("class",function(d){return "arc v"+d.data.id;})
+				.on('mouseover', function(d){ tip("show",d.data); })
+				.on("mousemove", function(d) { tip("move"); })
+				.on("mouseout", function(d){ tip("hide",d.data); })	
+			//create subtitle
+			svg.append("path")
+				.attr("id",function(d){return "mappiesub"+d[0].id;})
+				.style("opacity",0)
+				.style("pointer-events","none")
+				.attr("d",line(0,h-11,w,h-11))
+			svg.append("text")
+				.attr("class","ick-pie-sub")
+				.attr("text-anchor", "left")
+				.attr("dy","0.5ex")
+				.style("pointer-events","none")
+				.append("textPath")
+				.attr("xlink:href",function(d){return "#mappiesub"+d[0].id;})
+				.text(function(d) { return d[1]; });
+			
+			//UPDATE
+			//update title
+			sel.selectAll(".ick-pie-title").selectAll("textPath")
+				.text(function(d){return d[0].item;})
+			//update arc
+			path.attr("d",arc)	
+			//update subtitle
+			sel.selectAll(".ick-pie-sub").selectAll("textPath")
+				.text(function(d){return d[1];})
 				
-				
-/*
-//create new
-			sel.enter().append("rect")
-			.attr("class",function(d){return "v"+d.id;})
-			.style("fill",function(d){return color(d.id);})
-			.on("click", function(d) {
-				tip("hide",d);
-				updatePath(d);
-				updateView("zoom");
-			})
-			.on('mouseover', function(d){ tip("show",d); })
-			.on("mousemove", function(d) { tip("move"); })
-			.on("mouseout", function(d){ tip("hide",d); })	
-			//update All
-			sel.transition().duration(1000)
-			.attr("transform", p.rectTranslate)
-			.attr("width", function(d) { //w = x2-x1
-				var dc=d.view.treemap.coords;
-				return p.x(dc.x+dc.dx)-p.x(dc.x)-1; 
-			})
-			.attr("height", function(d) { //h = y2-y1
-				var dc=d.view.treemap.coords;
-				return p.y(dc.y+dc.dy)-p.y(dc.y)-1;
-			})
-			.style("opacity",1);
-			//delete
-			sel.exit().transition().duration(1000)
-			.style("opacity",0)
-			.remove();
-*/			
+			//DELETE	
+			sel.exit().remove();
+			path.exit().remove();
 		}
-		
 	}
 	
 	function treemap(c,p){
@@ -769,14 +783,14 @@ console.log("reduce",node.item,idxs.length);
 				.style("opacity",1)
 				.html("item: "+d.item+"<br/>category: "+d.category+"<br/>annotations: "+d.index.length)
 			//HL
-			d3.select(".v"+d.id)
+			d3.selectAll(".v"+d.id)
 			.style("fill",d3.rgb(color(d.id)).darker());
 			
 		}
 		else if(state=="hide") {
 			d3.select("#ick-tip").style("opacity",0);
 			//HL
-			d3.select(".v"+d.id)
+			d3.selectAll(".v"+d.id)
 			.style("fill",color(d.id));
 		}
 		else { // move
