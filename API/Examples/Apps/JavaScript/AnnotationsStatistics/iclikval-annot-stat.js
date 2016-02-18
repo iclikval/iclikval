@@ -148,9 +148,10 @@ console.log("annots",annots);
 //console.timeEnd("action-annot");
 	}
 	
-	function reduce(node,mode,load) {
+	function reduce(path,load) {
 		//init
-		if(!mode) {mode=d3.select("#ick_mode").node().value;}
+		var node=path[0];
+		var mode=path[1];
 		var idxs=[]; //list of annot
 		var cats=[];
 		var children=[];
@@ -673,18 +674,23 @@ console.log("reduce",node.item,idxs.length);
 	
 	//UPDATE//	
 	function updateView(mode){
+		
 		if(mode=="load") { //re-split from root
 			paths.forEach(function(path) {
-				reduce(path[0],path[1],true);
+				reduce(path,true);
 			});
 			param["progress"].setView();
 		}
 		else if(mode=="split"){
-			reduce(paths[paths.length-1][0]);
+			//update last mode
+			paths[paths.length-1][1]=d3.select("#ick_mode").node().value;
+			reduce(paths[paths.length-1]);
 		}
 		else if(mode=="zoom") {
 			param["path"].setView();
-			reduce(paths[paths.length-1][0]);
+			//update last mode
+			paths[paths.length-1][1]=d3.select("#ick_mode").node().value;
+			reduce(paths[paths.length-1]);
 			param["progress"].setView();
 		}	
 		param["treemap"].setView();
