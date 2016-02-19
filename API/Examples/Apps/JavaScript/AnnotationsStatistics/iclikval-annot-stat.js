@@ -30,16 +30,40 @@
 	
 	function initView() {
 		
+		//Params//
+		param = {
+			"path":{
+				"location":config.path.location,
+				"width":config.path.width,
+				"height":40,
+				"tail":10,
+				"space":0
+			},
+			"progress":{
+				"location":config.progress.location,
+				"width":config.progress.width,
+				"height":20,
+				"tail":10,
+				"space":0
+			},
+			"treemap":{
+				"location":config.treemap.location,
+				"width":config.treemap.width,
+				"height":config.treemap.height
+			}
+		}
+		
 		//style
 		d3.select("head").selectAll("#ick-css").data(["style"])
 		.enter().append("style").attr("id","ick-css").text(
 		".ick-hide{position:absolute;z-index:10;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;pointer-events:none;opacity:0}\n"
-		+".ick-box{position:absolute;z-index:3;display:inline-block;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;min-height:14px;}\n"
+/**/		+".ick-box{position:absolute;z-index:3;display:inline-block;background-color:#fff;border:1px solid #000;border-radius:.2em;padding:3px;min-height:14px;}\n"
 		+".ick-box ul{margin:0px;padding:0px 5px;}\n"
 		+".ick-box ul li {list-style-type:none;list-style-position:outside;}\n"
 		+".ick-box ul li:hover{background-color:#666;cursor:pointer;}\n"
-		+".ick-pie{float:left;border:1px solid #000;border-radius:.2em;padding:3px}\n"
-		
+		+".ick-path-colapse{float:left;width:"+param.path.width+"px;height:"+param.path.height+"px;}\n"//text+text
+		+".ick-path-expand{float:left;width:"+param.path.width+"px;height:"+(param.path.height+param.path.width-param.path.tail*2)+"px;}\n" //text+diameter+text
+		+"#ick-path span{border:1px solid #000;border-radius:.2em;height:"+(param.path.height/2-2)+"px;line-height:"+(param.path.height/2-2)+"px;}\n"
 		);
 		
 		//hidden div
@@ -47,17 +71,9 @@
 		.enter().append("div").attr("id",function(d){return "ick-"+d;}).attr("class", "ick-hide");
 		
 		//build views
-		param.path={"height":30};
-		path(config.path,param.path);
-		
-		param.progress={"height":20};
-		progress(config.progress,param.progress);
-		
-		param.pie={"radius":50};
-		pie(config.pie,param.pie);
-			
-		param.treemap={};
-		treemap(config.treemap,param.treemap);
+		path(param.path);
+		progress(param.progress);
+		treemap(param.treemap);
 	}
 	
 	function getAnnotations() {
@@ -171,10 +187,91 @@ console.log("annots",annots);
 	
 	//VIEWS//
 	/*bar from Kerry Rodden’s Block 7090426*/
-	function path(c,p) {
-		
-		var tag = { w:60,h:p.height,s:3,t:10};	
+	function path(p) {
+		p.update= function(list) {
+			//update list of options
+			d3.selectAll('.ick-searchbox').select('ul')
+				.selectAll("li").remove()
+			d3.selectAll('.ick-searchbox').select('ul')
+				.style("padding","5px")
+				.selectAll("li")
+				.data(list)
+				.enter().append("li")
+				.on("click",function(d) {
+					d3.selectAll(".ick-search").property("value",d.item)
+					d3.selectAll('.ick-searchbox')
+						.style("display","none")
+						.select('ul').selectAll("li").remove()
+					tip("hide",d);
+					updatePath(d);
+					updateView("zoom");
+				})
+				.on('mouseover', function(d){ tip("show",d); })
+				.on('mouseout', function(d){ tip("hide",d); })
+				.on("mousemove", function(d) { tip("move"); })
+				.text(function(d){return d.item;}) 
+		}
+	
 		//create div
+		var div = d3.select("#"+p.location)
+			.classed("ick-container",true)
+			.append("div")
+			.attr("id","ick-path")
+			.style("display","flex")
+			.style("font-family","'Source Code Pro','Lucida Console',Monaco,monospace")
+			.style("font-size","10pt");
+		
+		//info//
+		var sub = div.append("div")
+			.style("order",1)
+		sub.append("span").attr("class","fa fa-fw fa-info")
+		sub.append("br")
+		sub.append("span").attr("class","fa fa-fw fa-caret-right")
+
+		var sub = div.append("div")
+			.style("order",3)
+			.style("line-height",(p.height/2)+"px")
+		//Search bar//
+		sub.append("input").attr("type","text")
+			.attr("class","ick-search")
+			.style("height",(p.height/2-2)+"px")
+			.style("width",(p.width-2)+"px")
+			.style("padding","0px")
+			//.style("height",(p.height/2)+"px")
+			//.attr("size","7")
+			.on("focus",function() {
+				d3.select(".ick-searchbox").style("display","inline-block");
+				p.update(sorted.slice(0,10));
+			})
+			.on("keyup",function() {
+				var word = this.value;
+				var matches=[];
+				var i=0;
+				//build regext with input
+				regexp = new RegExp(word,'i');
+				//search 10 first results (sort by length & alpha)
+				while(i<sorted.length && matches.length<10) {
+					if(regexp.test(sorted[i].item)) {
+						matches.push(sorted[i]);
+					}
+					i++;
+				}
+				p.update(matches);
+			})
+		sub.append("br")
+		sub.append("div").attr("class","ick-searchbox ick-box")
+			.style("display","none")
+			.append("ul")
+			
+		//split mode//
+		sub.append("select").attr("id","ick_mode")
+			.style("width",(p.width)+"px")
+			.on("change",function() {updateView("split");});
+		
+		
+//////////////////////////////////////////		
+		var tag = { w:60,h:p.height,s:3,t:10};	
+/*		//create div
 		var div = d3.select("#"+c.location)
 			.classed("ick-container",true)
 			.append("div")
@@ -240,7 +337,7 @@ console.log("annots",annots);
 		div.append("div").attr("class","ick-searchbox ick-box")
 			.style("display","none")
 			.append("ul")
-
+*/
 		p.setView = function() {
 			//group for tile
 			var sel = d3.select("#ick-path").select("svg")
@@ -300,14 +397,14 @@ console.log("annots",annots);
 		p.setView();
 	}
 
-	function progress(c,p) {
+	function progress(p) {
 		
 		//create div
-		var svg = d3.select("#"+c.location)
+		var svg = d3.select("#"+p.location)
 			.classed("ick-container",true)
 			.append("svg")
 			.attr("id","ick-progress")
-			.attr("width", c.width)
+			.attr("width", p.width)
 			.attr("height", p.height)
 			.style("display","inline-block")//disable bottom padding
 			.style("font-family","'Source Code Pro','Lucida Console',Monaco,monospace")
@@ -316,7 +413,7 @@ console.log("annots",annots);
 		var g=svg.append("g").classed("ick-allitems",true).datum(total)
 		//rect
 		g.append("rect")
-			.attr("width", c.width)
+			.attr("width", p.width)
 			.attr("height", p.height)
 			.attr("fill","#ddd")
 			.on('mouseover', function(d){ tip("show",d); })
@@ -349,7 +446,7 @@ console.log("annots",annots);
 			.attr("id",function(d,i){return "mapprog"+i+d.id;})
 			.style("opacity",0)
 			.style("pointer-events","none")
-			.attr("d",line(0,p.height/2,c.width,p.height/2)) //x,y,x,y
+			.attr("d",line(0,p.height/2,p.width,p.height/2)) //x,y,x,y
 		//text
 		sel.append("text")
 			.attr("dy","0.5ex")
@@ -362,7 +459,7 @@ console.log("annots",annots);
 			
 		p.setView = function() {
 			//d3.scales
-			p.x = d3.scale.linear().range([0, c.width]).domain([0, total.index.length]);
+			p.x = d3.scale.linear().range([0, p.width]).domain([0, total.index.length]);
 			
 			d3.selectAll("#ick-progress").selectAll("polygon").data([root,node])
 			.attr("points",function(d) {return arrow(p.x(d.index.length),p.height,10,0,0);})
@@ -376,7 +473,7 @@ console.log("annots",annots);
 		}
 	}
 	
-	function pie(c,p) {
+	function pie(p) {
 		
 		var pie=d3.layout.pie()
 			.sort(null)
@@ -392,7 +489,7 @@ console.log("annots",annots);
 
 		p.setView=function() {
 			//CREATE
-			var sel = d3.select("#"+c.location)
+			var sel = d3.select("#"+p.location)
 				.selectAll(".ick-pie").data(paths)
 			//create new svg
 			var svg = sel.enter().append("svg")
@@ -470,19 +567,19 @@ console.log("annots",annots);
 		}
 	}
 	
-	function treemap(c,p){
+	function treemap(p){
 		//margin inner final svg
 		margin = {top:0, right:0, bottom:0, left:1}; 
-		p.h = c.height - margin.top - margin.bottom; 
-		p.w = c.width - margin.right - margin.left;
+		p.h = p.height - margin.top - margin.bottom; 
+		p.w = p.width - margin.right - margin.left;
 			
 		//create svg
-		var svg = d3.select("#"+c.location)
+		var svg = d3.select("#"+p.location)
 			.classed("ick-container",true)
 			.append("svg")
 			.attr("id","ick-treemap")
-			.attr("width", c.width)
-			.attr("height", c.height)
+			.attr("width", p.width)
+			.attr("height", p.height)
 			.style("display","inline-block")//disable bottom padding
 		
 		//backgroung
