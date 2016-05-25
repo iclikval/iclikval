@@ -1,6 +1,6 @@
 The API provides data in HAL (Hypermedia Application Language) format. Data in HAL format are just arrays of embedded resources (in this case, annotations). It includes a self relational link and pagination links - first, last, next, and prev. Also, it includes the total number of items (annotations) and page counts to easiliy be integrated with any pagination workflow.
 
-If you are not using pagination ignore relational links and metadata related to paginations. To work only on annotation data just get the ["_embedded"]["annotation"] which is a collection of annotations (it will be always a colection even if there is only single annotation data) and iterate over that collection using your choice of programming language.
+If you are not using pagination, please ignore relational links and metadata related to paginations. To work only on annotation data just get the ["_embedded"]["annotation"] which is a collection of annotations (it will be always a colection even if there is only single annotation data) and iterate over that collection using your choice of programming language.
 
 Sample annotation:
 
