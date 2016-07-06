@@ -28,22 +28,7 @@
 console.log("d3",d3.version);
 console.log("iclikval",ick.version);
 
-	var config={
-		"path":{
-			"location":"path",
-			"width":100
-		},
-		"progress":{
-			"location":"load",
-			"width":800
-		},
-		"treemap":{
-			"location":"view",
-			"width":800,
-			"height":600
-		}
-	}
-	ick.load(config);
+	ick.load("./config.json");
 	</script>
   </body>
 </html>

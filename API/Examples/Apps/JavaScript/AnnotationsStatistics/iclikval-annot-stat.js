@@ -1,9 +1,7 @@
 !(function() {
 	
 	var ick = { version: "0.4" };
-	
 	var url="http://api.iclikval.riken.jp/annotation";
-	var token="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6IjZjNDg4YmIzMmM2ZmJjNjI1MmFhYmE2MmQwN2FhYzEwNmU5N2ZmYjQiLCJqdGkiOiI2YzQ4OGJiMzJjNmZiYzYyNTJhYWJhNjJkMDdhYWMxMDZlOTdmZmI0IiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0IiwiYXVkIjoiODU5YWRiNmQ4NDNmYTdlOWE0ZWIxOTE3MWY1ZWJiZGUzNzllNjZkYTQzM2JiZDVlZmRhZmEzMzg2NWI5MTkzNiIsInN1YiI6Im1heGltZWhlYnJhcmQiLCJleHAiOjE0NTY4ODc0MTcsImlhdCI6MTQ1NTY3NzgxNywidG9rZW5fdHlwZSI6ImJlYXJlciIsInNjb3BlIjpudWxsfQ.INqWl2AaA4RRy3Tvp8Ldr2L0WPPdO1Njx5rAN4Y9f5_IrM9_WUbppqqlOEG4_P6Zva_ychYQTFWaPW6KDYsHlFFi1YOcgop03SgZxk2Zy9TtFEUawZTH2dZZUhPO1-Lg891B0_DEqLUm_XWj__Z6VT8d-EXw8U9D5wEWiLE1rw9YpADPqWKWmUvOjH7HpuXRDLEwRKIL0B4mpRrYe-AAGMKluTINHj-G65RfZ8ydXRbW8WvcUpC_rrVI34zRwMnTfIHZyBkr4XlsLzGVWV5t9XIJRfKeDqBLcHmb-kY8CdAVUhHa5EFe0AP_L_JssxbFg9PQ1GMWy5h7yRHblVjPYg";
 	//Query Params//
 	var currentPage=1;
 	var lastPage=""; // "" to the end
@@ -20,14 +18,31 @@
 	var color = d3.scale.ordinal().range(["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]);
 
 	//METHODS//
-	ick.load = function(c) {
+	ick.load = function(path) {
 //console.time("all");
-		config=c;
-		initView();	
+		d3.json(path,function(c) {
+			config=c;
+			initView();	
 //console.time("getAnnot");
-		getAnnotations();
+			getAnnotations();
+		});
 	}
 	
+
+	function loadJSON(path,callback) {   
+
+	    var xobj = new XMLHttpRequest();
+	        xobj.overrideMimeType("application/json");
+	    xobj.open('GET', path, true); // Replace 'my_data' with the path to your file
+	    xobj.onreadystatechange = function () {
+	          if (xobj.readyState == 4 && xobj.status == "200") {
+	            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+	            callback(xobj.responseText);
+	          }
+	    };
+	    xobj.send(null);  
+ 	}
+
 	function initView() {
 		
 		//Params//
@@ -77,7 +92,7 @@
 	
 	function getAnnotations() {
 		d3.json(url+"?page="+currentPage+"&page_size="+pageSize)
-			.header("Authorization","Bearer "+token)
+			.header("Authorization","Bearer "+config.token)
 			.get(function(err,data) {
 //console.timeEnd("getAnnot");
 console.log("page",currentPage,"read");
