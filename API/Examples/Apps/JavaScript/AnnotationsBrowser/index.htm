@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+	<title></title>
+	<link href='http://fonts.googleapis.com/css?family=Source+Code+Pro:600' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+<!---->	
+	<link rel="stylesheet" type="text/css" href="./font-awesome-4.3.0/css/font-awesome.min.css" />
+
+
+	</head>
+  <body>
+	<h1>Annotations</h1>
+	
+	<div id="path"></div>
+	<div id="load"></div>
+	<div style="display:flex">
+		<div id="view"></div>
+		<div id="pie"></div>
+	</div>
+	
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="./d3-transform.js"></script>
+	<script type="text/javascript" src="./iclikval-annot-stat.js"></script>
+	<script type="text/javascript">
+//test libs
+console.log("d3",d3.version);
+console.log("iclikval",ick.version);
+
+	ick.load("./config.json");
+	</script>
+  </body>
+</html>
